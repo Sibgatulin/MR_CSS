@@ -5,6 +5,54 @@ from pycss.utils import nbutils
 
 
 @njit
+def get_Amatrix(TE_s, pm):
+    """set up A matrix from voxel signal equation
+    of dimension #echoes x #species
+
+    :param TE_s: 1d np.array, with echo times in seconds
+    :param pm: 2d np.ndarray, parameter matrix of dimension #species x 4
+    :returns: A matrix
+    :rtype: 2d np.ndarray
+
+    """
+    A = np.zeros((len(TE_s), pm.shape[0]), dtype=np.complex128)
+    for i in range(A.shape[1]):
+        A[:, i] = np.exp((2j * np.pi * pm[i, 2] - pm[i, 3]) * TE_s)
+    return A
+
+
+@njit
+def build_signal(TE_s, pm):
+    """forward simulate MR signal at echo times TE_s
+
+    :param TE_s: 1d np.array, with echo times in seconds
+    :param pm: 2d np.ndarray, parameter matrix of dimension #species x 4
+    :returns:
+    :rtype: complex 1d np.ndarray
+
+    """
+    rho = pm[:, 0] * np.exp(1.j * pm[:, 1])
+    A = get_Amatrix(TE_s, pm)
+    return np.dot(A, rho.astype(A.dtype))
+
+
+@njit
+def add_noise(signal, SNR):
+    """add noise with SNR to signal
+
+    :param signal: complex 1d np.array, sampled MR signal at echo times TE_s
+    :param SNR: float
+    :returns: noisy signal
+    :rtype: complex 1d np.array, sampled MR signal at echo times TE_s w/ noise
+
+    """
+    sz = signal.shape
+    noise_r = np.random.normal(0, 1/SNR, sz)
+    noise_i = np.random.normal(0, 1/SNR, sz)
+    return (signal.real + noise_r) + 1j * (signal.imag + noise_i)
+
+
+@njit
 def get_TE_s(nTE, TE1_s, dTE_s, nAcq=1, acq_shift=(0.5)):
     """get 1d numpy array with echo times (TE) in seconds
 
@@ -134,58 +182,3 @@ def get_params_combinations(nlparams, shape):
             params_combinations[r, c] = prange[ind]
 
     return params_combinations
-
-
-@njit
-def get_Fisher_matrix(TE_s, pm, Cm, Cp, Cf, Cr):
-    J = css.get_Jacobian(TE_s, pm, Cm, Cp, Cf, Cr)
-    return np.dot(np.conjugate(J.T), J).real
-
-
-@njit
-def get_CRB_matrix(TE_s, pm, Cm, Cp, Cf, Cr):
-    F = get_Fisher_matrix(TE_s, pm, Cm, Cp, Cf, Cr)
-    return np.linalg.inv(F)
-
-
-@njit(parallel=True)
-def compute_FIMparams(TE_s, Pm, Cm, Cp, Cf, Cr):
-
-    nTE = len(TE_s)
-    nVoxels = Pm.shape[0]
-    nParams = Cm.shape[1] + Cp.shape[1] + Cf.shape[1] + Cr.shape[1]
-
-    FIMs = np.zeros((nVoxels, nParams, nParams))
-    FIMinvs = np.zeros((nVoxels, nParams, nParams))
-    CRLBs = np.zeros((nVoxels, nParams))
-    NSAs = np.zeros((nVoxels, nParams))
-    Invariants = np.zeros((nVoxels, 3))  # trF, trF^-1, detF
-
-    for i in prange(nVoxels):
-        pm = Pm[i, ...].reshape(Pm.shape[1:])
-
-        FIM = get_Fisher_matrix(TE_s, pm, Cm, Cp, Cf, Cr)
-        FIMinv = np.linalg.inv(FIM)
-
-        FIMs[i, ...] = FIM
-        FIMinvs[i, ...] = FIMinv
-        CRLB = np.diag(FIMinv)
-        CRLBs[i, ...] = CRLB
-        NSAs[i, ...] = nTE / np.diag(FIM) / CRLB
-        Invariants[i, ...] = np.array([np.trace(FIM),
-                                       np.trace(FIMinv),
-                                       np.linalg.det(FIM)])
-
-    return CRLBs, NSAs, Invariants, FIMs, FIMinvs
-
-
-def mc_css_varpro(Ninr, snr, TE_s, sig, pm0, Cm, Cp, Cf, Cr, tol, itermax):
-    Sig = np.tile(sig, [Ninr, 1])
-    Sig_noise = css.add_noise(Sig, snr)
-    Pm0 = np.tile(pm0, [Ninr, 1, 1])
-    Pme, Resnorm, Iterations = css.map_varpro(TE_s, Sig_noise, Pm0,
-                                              Cm, Cp, Cf, Cr,
-                                              tol, itermax)
-    variables = css.extract_variables(Pme, [Cm, Cp, Cf, Cr])
-    stats = np.array([[np.mean(v), np.var(v)] for v in variables]).T
-    return stats

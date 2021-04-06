@@ -49,12 +49,12 @@ def Cmats():
 
 
 def test_get_Amatrix(pm, TE_s):
-    A = css.get_Amatrix(TE_s, pm)
+    A = sim.get_Amatrix(TE_s, pm)
     assert A.shape == (len(TE_s), pm.shape[0])
 
 
 def test_build_signal(pm, TE_s):
-    sig = css.build_signal(TE_s, pm)
+    sig = sim.build_signal(TE_s, pm)
     assert sig is not None
     assert sig.dtype == complex
 
@@ -85,7 +85,7 @@ def test_get_Jacobian(pm, TE_s, Cmats):
 
 def test_varpro(pm, TE_s, Cmats):
     Cm, Cp, Cf, Cr = Cmats
-    sig = css.build_signal(TE_s, pm)
+    sig = sim.build_signal(TE_s, pm)
 
     tol = 1e-6
     itermax = 100
@@ -103,7 +103,7 @@ def test_varpro(pm, TE_s, Cmats):
 
 def test_map_varpro(pm, TE_s, Cmats):
     Cm, Cp, Cf, Cr = Cmats
-    sig = css.build_signal(TE_s, pm)
+    sig = sim.build_signal(TE_s, pm)
 
     nVoxel = 100
     Sig = np.tile(sig.T, [nVoxel, 1])
@@ -166,9 +166,9 @@ def test_add_noise():
     pm[:, 1] = np.pi/4
     pm[:, 2] = 100 + np.array([0, 340, 440])
     pm[:, 3] = 5
-    sig = css.build_signal(TE_s, pm)
+    sig = sim.build_signal(TE_s, pm)
     SNR = 20
-    noisy_sig = css.add_noise(sig, SNR)
+    noisy_sig = sim.add_noise(sig, SNR)
     assert (noisy_sig != sig).all()
     assert noisy_sig.dtype == complex
 

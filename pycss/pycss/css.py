@@ -2,7 +2,9 @@ import numpy as np
 from numba import njit, prange
 from time import time
 from datetime import timedelta
-from pycss import sim
+from pycss.utils import construct_map
+from pycss.sim import build_signal, get_Amatrix
+from pycss.noise import compute_FIMmaps
 
 
 def css_varpro(imDataParams, options):
@@ -40,11 +42,11 @@ def css_varpro(imDataParams, options):
     if verbose:
         print(f'Done. Elapsed time: {str(timedelta(seconds=elapsed_s)):.10}')
 
-    maps = construct_param_maps(Pme, [Cm, Cp, Cf, Cr], mask)
+    param_maps = [construct_map(v1d, mask)
+                  for v1d in extract_variables(Pme, [Cm, Cp, Cf, Cr])]
 
     output_dict = {'params_matrices': Pme,
-                   'param_maps': construct_param_maps(Pme,
-                                                      [Cm, Cp, Cf, Cr], mask),
+                   'param_maps': param_maps,
                    'resnorm': construct_map(Resnorm, mask),
                    'iterations': construct_map(Iterations, mask),
                    'elapsed_time_s': elapsed_s}
@@ -53,11 +55,6 @@ def css_varpro(imDataParams, options):
         output_dict.update(compute_FIMmaps(TE_s, Pme, Cm, Cp, Cf, Cr, mask))
 
     return output_dict
-
-
-def construct_param_maps(Pme, constraints_matrices, mask):
-    return [construct_map(vals, mask)
-            for vals in extract_variables(Pme, constraints_matrices)]
 
 
 def extract_variables(Pm, constraints_matrices):
@@ -76,25 +73,6 @@ def extract_variables(Pm, constraints_matrices):
             vals.append(np.squeeze(pmn[..., ind, iptype]))
 
     return vals
-
-
-def construct_map(vals1D, mask):
-    map_ = np.zeros(mask.shape, dtype=vals1D.dtype).ravel()
-    map_[mask.ravel()] = vals1D
-    return map_.reshape(mask.shape)
-
-
-def compute_FIMmaps(TE_s, Pm, Cm, Cp, Cf, Cr, mask):
-    CRLBs, NSAs, Invariants, FIMs, FIMinvs = \
-        sim.compute_FIMparams(TE_s, Pm, Cm, Cp, Cf, Cr)
-    n = CRLBs.shape[-1]
-    return {'CRLBs': np.array([construct_map(CRLBs[:, i], mask)
-                                for i in range(n)]),
-            'NSAs': np.array([construct_map(NSAs[:, i], mask)
-                               for i in range(n)]),
-            'trFIM': construct_map(Invariants[:, 0], mask),
-            'trInvFIM': construct_map(Invariants[:, 1], mask),
-            'detFIM': construct_map(Invariants[:, 2], mask)}
 
 
 @njit(parallel=True)
@@ -282,38 +260,6 @@ def varpro_iter(TE_s, sig, pm, Cm, Cp, Cf, Cr, tol, itermax):
 
 
 @njit
-def get_Amatrix(TE_s, pm):
-    """set up A matrix from voxel signal equation
-    of dimension #echoes x #species
-
-    :param TE_s: 1d np.array, with echo times in seconds
-    :param pm: 2d np.ndarray, parameter matrix of dimension #species x 4
-    :returns: A matrix
-    :rtype: 2d np.ndarray
-
-    """
-    A = np.zeros((len(TE_s), pm.shape[0]), dtype=np.complex128)
-    for i in range(A.shape[1]):
-        A[:, i] = np.exp((2j * np.pi * pm[i, 2] - pm[i, 3]) * TE_s)
-    return A
-
-
-@njit
-def build_signal(TE_s, pm):
-    """forward simulate MR signal at echo times TE_s
-
-    :param TE_s: 1d np.array, with echo times in seconds
-    :param pm: 2d np.ndarray, parameter matrix of dimension #species x 4
-    :returns:
-    :rtype: complex 1d np.ndarray
-
-    """
-    rho = pm[:, 0] * np.exp(1.j * pm[:, 1])
-    A = get_Amatrix(TE_s, pm)
-    return np.dot(A, rho.astype(A.dtype))
-
-
-@njit
 def get_Jacobian(TE_s, pm, Cm, Cp, Cf, Cr):
     """compute Jacobian
 
@@ -345,22 +291,6 @@ def get_Jacobian(TE_s, pm, Cm, Cp, Cf, Cr):
     # J = J[np.all(~(J==0), axis=0), :]
     # J = J[:, (~(J==0), axis=1)]
     return J
-
-
-@njit
-def add_noise(signal, SNR):
-    """add noise with SNR to signal
-
-    :param signal: complex 1d np.array, sampled MR signal at echo times TE_s
-    :param SNR: float
-    :returns: noisy signal
-    :rtype: complex 1d np.array, sampled MR signal at echo times TE_s w/ noise
-
-    """
-    sz = signal.shape
-    noise_r = np.random.normal(0, 1/SNR, sz)
-    noise_i = np.random.normal(0, 1/SNR, sz)
-    return (signal.real + noise_r) + 1j * (signal.imag + noise_i)
 
 
 @njit
@@ -420,7 +350,7 @@ def set_params(beta, pm, Cm, Cp, Cf, Cr):
 
     """
     deshielding_Hz = np.concatenate(([0], pm[1:, 2] - pm[0, 2]))
-    _, Ntot, Nm, Np, Nf, Nr = get_paramCounts(Cm, Cp, Cf, Cr)
+    _, Ntot, Nm, Np, Nf, Nr = get_paramsCount(Cm, Cp, Cf, Cr)
     pm[:, 0] = np.dot(Cm, beta[0:Nm])
     pm[:, 1] = np.dot(Cp, beta[Nm:Nm+Np])
     pm[:, 2] = np.dot(Cf, *beta[Nm+Np:Nm+Np+Nf]) + deshielding_Hz
