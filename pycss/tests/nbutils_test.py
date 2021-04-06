@@ -1,32 +1,30 @@
-import pytest
 import numpy as np
-from copy import deepcopy
-import nbutils
+from pycss.utils import nbutils
 
 
 d = 3
-arr = np.arange(d**3).reshape(d, d, d)
+arr = np.arange(d ** 3).reshape(d, d, d)
 shape = arr.shape
 
 
 def test_ind2sub():
     for i in range(arr.size):
-       act = ind2sub(i, np.array(shape))
-       exp = np.array(np.unravel_index(i, shape))
-       assert (act == exp).all()
+        act = nbutils.ind2sub(i, np.array(shape))
+        exp = np.array(np.unravel_index(i, shape))
+        assert (act == exp).all()
 
 
 def test_sub2ind():
-   for i in range(arr.size):
-       sub = np.array(np.unravel_index(i, shape))
-       act = sub2ind(sub, np.array(shape))
-       exp = np.ravel_multi_index(sub, shape)
-       assert act == exp
+    for i in range(arr.size):
+        sub = np.array(np.unravel_index(i, shape))
+        act = nbutils.sub2ind(sub, np.array(shape))
+        exp = np.ravel_multi_index(sub, shape)
+        assert act == exp
 
 
 def test_list_multi_indexes():
     shape = np.array([2, 3, 4])
-    subs = list_multi_indexes(shape)
+    subs = nbutils.list_multi_indexes(shape)
 
     assert isinstance(subs, np.ndarray)
     assert subs.shape == (np.prod(shape), len(shape))
