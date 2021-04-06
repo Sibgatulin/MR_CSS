@@ -1,10 +1,6 @@
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
-from copy import deepcopy
-import css
-import residual
-import sim
+from pycss import css, sim, residual
 
 # plt.style.use('ggplot')
 plt.style.use('default')

@@ -1,9 +1,7 @@
 import numpy as np
-from numba import njit, jit
-import nbutils
-from nbutils import ind2sub, sub2ind, list_multi_indexes, find_local_minima
-import sim
-import css
+from numba import njit
+from pycss import sim, css
+from pycss.utils.nbutils import sub2ind, find_local_minima
 
 
 # @jit

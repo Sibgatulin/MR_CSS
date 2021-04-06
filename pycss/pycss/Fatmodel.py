@@ -2,9 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from copy import deepcopy
-from pywfi.css import css
-from CSmodel import CSmodel
+from pycss.CSmodel import CSmodel
 
 
 # plt.style.use('ggplot')

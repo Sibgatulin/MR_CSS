@@ -2,7 +2,7 @@ import numpy as np
 from numba import njit, prange
 from time import time
 from datetime import timedelta
-import sim
+from pycss import sim
 
 
 def css_varpro(imDataParams, options):

@@ -1,11 +1,8 @@
 import pytest
 from copy import deepcopy
 import numpy as np
-import css
-import sim
-import h5io
-import wfi
-from Fatmodel import Fatmodel
+from pycss import css, sim, wfi
+from pycss.Fatmodel import Fatmodel
 
 
 tol = 1e-6
@@ -177,7 +174,6 @@ def test_add_noise():
 
 
 def test_varpro_phaseconstrained():
-    from Fatmodel import Fatmodel
     F = Fatmodel()
     F.set_params_matrix()
     F.build_signal()

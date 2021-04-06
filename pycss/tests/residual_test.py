@@ -1,11 +1,7 @@
 import pytest
 from copy import deepcopy
 import numpy as np
-import matplotlib.pyplot as plt
-import residual
-import css
-import sim
-import nbutils
+from pycss import residual, sim, css
 
 
 tol = 1e-6

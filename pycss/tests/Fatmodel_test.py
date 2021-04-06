@@ -1,10 +1,8 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import pandas as pd
 import pytest
 
-from CSmodel import CSmodel
-from Fatmodel import Fatmodel
+from pycss.Fatmodel import Fatmodel
 
 
 @pytest.fixture

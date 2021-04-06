@@ -1,12 +1,7 @@
 import numpy as np
-import scipy.linalg as la
-from numba import njit, prange
-import matplotlib.pyplot as plt
-from copy import deepcopy
-import utils.customio as io
-from Fatmodel import Fatmodel
-import css
-import time
+from numba import njit
+from pycss import css
+from pycss.Fatmodel import Fatmodel
 
 
 def wfi_css_varpro(imDataParams, options=None):

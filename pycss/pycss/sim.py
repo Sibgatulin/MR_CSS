@@ -1,8 +1,7 @@
 import numpy as np
 from numba import njit, prange
-import css
-import residual
-import nbutils
+from pycss import css, residual
+from pycss.utils import nbutils
 
 
 @njit

@@ -1,10 +1,9 @@
+import pytest
 import numpy as np
 import matplotlib.pyplot as plt
-from CSmodel import CSmodel
 from copy import deepcopy
-import residual
-import sim
-import pytest
+from pycss import residual
+from pycss.CSmodel import CSmodel
 
 
 @pytest.fixture
