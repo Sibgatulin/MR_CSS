@@ -1,18 +1,9 @@
-import pytest
+import h5py as h5
 import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits import mplot3d
-from copy import deepcopy
-# import css
-from utils.utils import *
-from utils.customio import *
-import SimpleITK as sitk
-import matplotlib.pyplot as plt
-# from pywfi import wfi
 from pprint import pprint
-from Fatmodel import Fatmodel
-import css
-import wfi
+from pycss import css, wfi
+from pycss.Fatmodel import Fatmodel
+from pycss.h5io import load_ImDataParams_mat
 
 
 filename = '/Users/mnd/Projects/FatParameterEstimation/data/DiagnostikBilanz/20170609_125718_0402_ImDataParams.mat'

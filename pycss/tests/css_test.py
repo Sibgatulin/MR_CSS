@@ -1,8 +1,10 @@
 import pytest
-from copy import deepcopy
+import h5py as h5
 import numpy as np
+from copy import deepcopy
 from pycss import css, sim, wfi
 from pycss.Fatmodel import Fatmodel
+from pycss.h5io import load_ImDataParams_mat
 
 
 tol = 1e-6
@@ -118,6 +120,7 @@ def test_map_varpro(pm, TE_s, Cmats):
     assert np.allclose(Pm0, Pme)
 
 
+@pytest.skip(reason="required files not available")
 def test_css_varpro():
     filename = '/Users/mnd/Projects/FatParameterEstimation/data/DiagnostikBilanz/20170609_125718_0402_ImDataParams.mat'
     imDataParams = load_ImDataParams_mat(filename)
@@ -129,8 +132,6 @@ def test_css_varpro():
     tissue_mask = wfi.calculate_tissue_mask(imDataParams['signal'])
 
     filename = '/Users/mnd/Projects/FatParameterEstimation/data/DiagnostikBilanz/20170609_125718_0402_WFIparams_CSS_GANDALF2D_VL.mat'
-    h5file = h5.File(filename, 'r')
-    path = '/WFIparams'
     f = h5.File(filename, 'r')
     fieldmap_Hz = np.transpose(f['/WFIparams/fieldmap_Hz'][...])[:, :, iz]
     fieldmap_Hz_equalized = wfi.equalize_fieldmap_periods(fieldmap_Hz, imDataParams['TE_s'])
